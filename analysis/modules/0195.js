@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(e){function t(){return e.call(this)||this}return __extends(t,e),t.prototype.updateData=function(e){this._data=e},t.prototype.getModelPos=function(){return[]},t}(eui.Component);t["default"]=o}

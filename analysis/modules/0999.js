@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(60),n=i(0),a=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.exec=function(e){this._proxy=this.getProxy(n.ProxyType.Team),this._proxy.edInfo&&this._proxy.doEnterDungeonInfo(this._proxy.edInfo.id)},t}(o["default"]);t["default"]=a}

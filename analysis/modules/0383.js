@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.FilterUtil=void 0;var o=function(){function e(){}return Object.defineProperty(e,"grayFilter",{get:function(){if(!this._gray){var e=[.3,.6,0,0,0,.3,.6,0,0,0,.3,.6,0,0,0,0,0,0,1,0],t=new egret.ColorMatrixFilter(e);this._gray=[t]}return this._gray},enumerable:!1,configurable:!0}),e}();t.FilterUtil=o}

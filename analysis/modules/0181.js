@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){}return e.BATTLE_DMG_MG=2005,e.BATTLE_DMG=2e3,e.BATTLE_ADD=2001,e.BATTLE_MP=2002,e.BATTLE_CRITICAL=2003,e.BATTLE_TOUGHNESS=2004,e}();t["default"]=o}

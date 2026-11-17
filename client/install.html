@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#18202e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="世界OL">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" sizes="180x180" href="pwa-180.png">
+  <title>安装幻想的世界 OL</title>
+  <style>
+    :root{color-scheme:dark light;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#18202e;color:#f3f5f8}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+    main{width:min(100%,520px);padding:24px 0}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:36px}
+    header img{width:64px;height:64px;object-fit:contain}
+    h1{font-size:24px;margin:0;font-weight:650}
+    h2{font-size:18px;margin:28px 0 10px}
+    p{color:#c9d0da;line-height:1.6;margin:10px 0 16px}
+    a,button{font:inherit}
+    .action{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 18px;border:1px solid #8ca5d2;border-radius:6px;background:#354c73;color:#fff;text-decoration:none;cursor:pointer}
+    .secondary{background:transparent;color:#d7e2f4}
+    .hidden{display:none}
+    footer{margin-top:34px}
+    footer a{color:#c9d8f4}
+  </style>
+  <script src="pwa-register.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="pwa-192.png" width="64" height="64" alt="">
+      <h1>幻想的世界 OL</h1>
+    </header>
+
+    <section>
+      <h2>安装到设备</h2>
+      <p>安装后可从设备主屏幕打开游戏。</p>
+      <button class="action hidden" id="pwa-install" type="button">安装应用</button>
+      <p id="pwa-help">使用浏览器菜单中的“安装应用”或“添加到主屏幕”。</p>
+    </section>
+
+    <section>
+      <h2>iPhone 与 iPad</h2>
+      <p>下载配置描述文件后，在系统设置中完成安装。</p>
+      <a class="action secondary" href="/WorldOffline.mobileconfig">下载安装描述文件</a>
+    </section>
+
+    <footer><a href="standalone.html">打开游戏</a></footer>
+  </main>
+  <script>
+    const button = document.getElementById("pwa-install");
+    const help = document.getElementById("pwa-help");
+    window.addEventListener("worldofflineinstallavailable", () => {
+      button.classList.remove("hidden");
+      help.textContent = "点击下方按钮，将游戏添加到设备主屏幕。";
+    });
+    button.addEventListener("click", async () => {
+      const prompt = window.__worldOfflineInstallPrompt;
+      if (!prompt) return;
+      prompt.prompt();
+      await prompt.userChoice;
+      window.__worldOfflineInstallPrompt = null;
+      button.classList.add("hidden");
+    });
+    window.addEventListener("worldofflineappinstalled", () => {
+      button.classList.add("hidden");
+      help.textContent = "游戏已安装，可从设备主屏幕打开。";
+    });
+  </script>
+</body>
+</html>

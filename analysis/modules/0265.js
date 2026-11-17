@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.StarItem=void 0;var o=i(7),n=function(e){function t(){return e.call(this)||this}return __extends(t,e),t.prototype.dataChanged=function(){this.currentState="star"},t}(o["default"]);t.StarItem=n}

@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";function o(){var e=[10504,10505,16001,16021];gg.traceProto=function(){for(var t=[],i=0;i<arguments.length;i++)t[i]=arguments[i];var o=t;if("1"!==go.dbg&&o.length>1&&o[1]){var n=Number(o[1]);if(e.indexOf(n)>=0)return}console.log.apply(console,o)}}Object.defineProperty(t,"__esModule",{value:!0}),t.initLog=void 0,t.initLog=o}

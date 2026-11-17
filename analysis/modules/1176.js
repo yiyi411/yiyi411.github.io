@@ -1,0 +1,2 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),i(1177);var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="skins.FurnaceSkin",t.proBar.labelDisplay.visible=!0,t.proBar.labelDisplay.size=22,t
+}return __extends(t,e),t}(eui.Component);t["default"]=o}

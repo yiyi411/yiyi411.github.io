@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(7),n=function(e){function t(){var t=e.call(this)||this;return t.skinName="MissionDailyGameTypeRenderSkin",t}return __extends(t,e),t.prototype.dataChanged=function(){var e=this;e.data&&(e.typeName.text=e.data.t_name)},t}(o["default"]);t["default"]=n}

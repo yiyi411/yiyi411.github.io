@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(e){function t(){return e.call(this)||this}return __extends(t,e),t.prototype.dataChanged=function(){null!=this.data&&(this.labelDisplay.text=this.data)},t}(eui.ItemRenderer);t["default"]=o}

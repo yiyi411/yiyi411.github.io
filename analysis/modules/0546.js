@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){}return e.getVo=function(t){for(var i=[],o=0;o<t.length;o++){var n=t[o],a=new e;a.data=n,a.isLevel=t.length>1,i.push(a)}return i},e}();t["default"]=o}

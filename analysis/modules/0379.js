@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.BattleMpBar=void 0;var o=i(236),n=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.initThumb=function(){e.prototype.initThumb.call(this),this.thumb.source="fight_panel_mp2"},t}(o["default"]);t.BattleMpBar=n}

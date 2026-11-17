@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(9),n=i(278),a=i(277),r=function(e){function t(){var t=e.call(this,o.Layer.modal2)||this;return t._view=t.mark("_view",n["default"]),t}return __extends(t,e),t}(a["default"]);t["default"]=r}

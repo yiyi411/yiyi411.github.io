@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.InitMiscCmd=void 0;var o=i(2),n=i(71),a=i(726),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.exec=function(t){e.prototype.exec.call(this,t),this.owner.unregCmd(o.MiscEvent.INIT_MISC),new a.MiscMdr},t}(n["default"]);t.InitMiscCmd=r}

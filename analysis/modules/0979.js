@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(36),n=i(295),a=i(316),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.onInit=function(){e.prototype.onInit.call(this),this.tabListMdr=[n["default"],a["default"]],this.tabListData=[{lab:"周围"},{lab:"组队"}]},t}(o["default"]);t["default"]=r}

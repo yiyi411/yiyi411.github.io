@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(32),n=function(e){function t(){var t=null!==e&&e.apply(this,arguments)||this;return t.typeMoney=0,t.typeMoneyQuantity=0,t.itemIsLock=!1,t.isReceive=!1,t.specialId=0,t.isIllustrate=!1,t}return __extends(t,e),t}(o["default"]);t["default"]=n}

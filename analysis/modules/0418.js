@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.StopPingCmd=void 0;var o=i(60),n=i(0),a=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.exec=function(e){var t=this.getProxy(n.ProxyType.Ping);t.stopPing()},t}(o["default"]);t.StopPingCmd=a}

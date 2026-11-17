@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(46),n=i(3),a=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.sendNt=function(e,t){n["default"].sendNt(e,t)},t}(o.ObjBase);t["default"]=a}

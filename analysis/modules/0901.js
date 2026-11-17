@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.RoleInfoBtnItem=void 0;var o=i(7),n=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.dataChanged=function(){null!=this.data&&(this.labelDisplay.text=this.data.name)},t}(o["default"]);t.RoleInfoBtnItem=n}

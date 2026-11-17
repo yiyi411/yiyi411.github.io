@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){}return e.STATUS_CANNOT_GET=0,e.STATUS_CAN_GET=1,e.STATUS_HAS_GET=2,e.isChargeActivityOpen=!1,e}();t["default"]=o}

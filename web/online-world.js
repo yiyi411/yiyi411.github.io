@@ -1,0 +1,1 @@
+(()=>{"use strict";window.installOnlineWorld=n=>{const l=window.installNativeOnline(n);window.worldolOnlineWorld=l;return l}})();

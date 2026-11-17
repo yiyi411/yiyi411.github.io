@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.CrossOperateType=void 0;var o;!function(e){e[e.teamCreate=1]="teamCreate",e[e.quickTeam=2]="quickTeam",e[e.promoteList=3]="promoteList",e[e.search=4]="search",e[e.myTeam=5]="myTeam",e[e.startFight=6]="startFight",e[e.reFeash=7]="reFeash"}(o=t.CrossOperateType||(t.CrossOperateType={}))}

@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.CrossModel=void 0;var o=i(334),n=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t}(o.BaseModel);t.CrossModel=n}

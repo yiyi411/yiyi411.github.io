@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.FinalBossData=t.MAX_PET_CONFIG=void 0,t.MAX_PET_CONFIG=3;var o=function(){function e(){}return Object.defineProperty(e.prototype,"petsConfig",{get:function(){var e;return null===(e=this.finalBossInfo)||void 0===e?void 0:e.petIds},enumerable:!1,configurable:!0}),e}();t.FinalBossData=o}

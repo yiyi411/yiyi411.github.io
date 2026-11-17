@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.CrossServerTeamData=void 0;var o=function(){function e(e){this.level=0,this.fight=0,this.id=e.getString(),this.name=e.getString(),this.icon1=e.getLong(),this.job=e.getByte(),this.sex=e.getByte(),this.race=e.getByte(),this.memberNum=e.getInt()}return e}();t.CrossServerTeamData=o}

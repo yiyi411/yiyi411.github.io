@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.ItemIconBase2=void 0;var o=i(47),n=function(e){function t(){return e.call(this,"ItemIconSkin2")||this}return __extends(t,e),t}(o.ItemIconBase);t.ItemIconBase2=n}

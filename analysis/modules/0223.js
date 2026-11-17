@@ -1,0 +1,1 @@
+function(e,t){var i;i=function(){return this}();try{i=i||new Function("return this")()}catch(o){"object"==typeof window&&(i=window)}e.exports=i}

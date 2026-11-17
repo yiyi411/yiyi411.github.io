@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="FormatAlertItemSkin",t}return __extends(t,e),t.prototype.dataChanged=function(){this.data&&(this.labelContent.text=this.data.content,this.labelPro.text=this.data.pro)},t}(eui.ItemRenderer);t["default"]=o}

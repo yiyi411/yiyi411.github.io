@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";function o(){n.util.Long=Long,n.configure(),a["default"].regProtobuf()}Object.defineProperty(t,"__esModule",{value:!0}),t.initProto=t.protoVersion=void 0;var n=i(414),a=i(227);t.initProto=o}

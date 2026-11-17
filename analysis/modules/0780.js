@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),i(147);var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="PetMerInfoSkin",t.proBarHP.getChildByName("thumb").source="fight_panel_hp2",t.proBarMP.getChildByName("thumb").source="fight_panel_mp2",t}return __extends(t,e),t}(eui.Component);t["default"]=o}

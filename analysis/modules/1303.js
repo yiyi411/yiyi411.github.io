@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(0),n=i(48),a=i(1304),r=function(e){function t(){return e.call(this,o.ModName.Guide)||this}return __extends(t,e),t.prototype.initModel=function(){this.regProxy(o.ProxyType.Guide,a["default"])},t}(n["default"]);t["default"]=r}

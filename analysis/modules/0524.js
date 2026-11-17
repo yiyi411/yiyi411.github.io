@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.BattleCmd=void 0;var o=i(3),n=i(0),a=i(71),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.exec=function(e){var t=o["default"].getProxy(n.ModName.Battle,n.ProxyType.Battle);t.dealRemoteBattle(e.body)},t}(a["default"]);t.BattleCmd=r}

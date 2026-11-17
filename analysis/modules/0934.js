@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(60),n=i(935),a=i(26),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.exec=function(e){this.owner.unregCmd(a.SceneEvent.INIT_SCENE_MDR);new n["default"]},t}(o["default"]);t["default"]=r}

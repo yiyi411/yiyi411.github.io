@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){this.gainMoney=0,this.gainExp=0,this.petExp=0,this.itemList=[]}return e.prototype.clear=function(){this.battleType=null,this.missionTips=null,this.gainExp=0,this.gainMoney=0,this.petExp=0,this.itemList.length=0,this.damage=0},e}();t["default"]=o}

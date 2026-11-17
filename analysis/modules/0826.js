@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(7),n=function(e){function t(){var t=e.call(this)||this;return t.skinName="RelationMenuSkin",t}return __extends(t,e),t}(o["default"]);t["default"]=n}

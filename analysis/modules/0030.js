@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){this.content=""}return e.prototype.append=function(e){this.content+=e},e.prototype.toString=function(){return this.content},e.prototype.toTextFlow=function(){},e}();t["default"]=o}

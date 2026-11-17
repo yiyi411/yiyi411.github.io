@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.ListBagItem2=void 0;var o=i(596),n=function(e){function t(){return e.call(this)||this}return __extends(t,e),t.prototype.dataChanged=function(){e.prototype.dataChanged.call(this)},t}(o.ItemIconBase2);t.ListBagItem2=n}

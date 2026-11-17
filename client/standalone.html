@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#18202e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="世界OL">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="pwa-180.png">
+<script src="pwa-register.js"></script>
+<script>
+/* 世界OL 单机版 · 挂机秒过：只在游戏内挂机开启时生效，去掉挂机决策节流、缩短任务与胜利面板倒数。
+   2026-11-04 用户：战斗不再自动跳过动画，倍速只留战斗内按钮（最高 2 倍），全局时钟加速已删除。
+   */
+(function () {
+  'use strict';
+  if (window.__wolSpeedMenuInstalled) return;
+  window.__wolSpeedMenuInstalled = true;
+  function read(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+  window.__wolFast3s = false; // 隐藏开关已撤；旧偏好不再生效，战斗一律完整播放。
+  // 诊断：把未捕获的脚本错误直接显示在屏幕上（点红条可关闭），
+  // 避免出问题时只能看到黑屏、无从下手。
+  window.__wolErrs = [];
+  function showErr(msg) {
+    try {
+      var box = document.getElementById('wol-err-box');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'wol-err-box';
+        box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483600;background:#a1121f;color:#fff;font:12px/1.45 monospace;padding:8px 10px;max-height:45%;overflow:auto;white-space:pre-wrap';
+        box.addEventListener('click', function () { if (box.parentNode) box.parentNode.removeChild(box); });
+        (document.body || document.documentElement).appendChild(box);
+      }
+      window.__wolErrs.push(String(msg));
+      while (window.__wolErrs.length > 6) window.__wolErrs.shift();
+      // 2026-10：报错时顺带附上本地服务端最近几条协议日志，便于定位是哪个协议出的问题
+      var tail = '';
+      try {
+        var st = window.__worldolStandalone;
+        var lg = st && st.log;
+        if (lg && lg.length) {
+          tail = '\n\n[最近协议日志]\n' + lg.slice(-8).map(function (x) { try { return JSON.stringify(x).slice(0, 160); } catch (e2) { return String(x); } }).join('\n');
+        }
+      } catch (e3) {}
+      box.textContent = '脚本错误（点此关闭）\n' + window.__wolErrs.join('\n---\n') + tail;
+    } catch (e) {}
+  }
+  window.addEventListener('error', function (e) {
+    showErr('ERR ' + ((e && e.message) || '') + '\n@ ' + ((e && e.filename) || '') + ':' + ((e && e.lineno) || ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    var s = String((r && (r.stack || r.message)) || r || '');
+    if (/time ?out|timeout/i.test(s)) return;
+    showErr('REJ ' + s);
+  });
+  window.__wolRealNow = Date.now.bind(Date);
+  window.__wolRealPerformanceNow = performance.now.bind(performance);
+  var world = null, consts = null, aiDone = false, mdDone = false, winDone = false, hideDone = false, hookTimer = 0, hookTries = 0;
+  // 原版：自动挂机时「完成任务」会以 1000ms 一跳倒数 3 秒（按钮上显示（3）（2）（1）），
+  //       倒数完才自动执行。这里把倒数压到 1 跳，并以 25ms 高频驱动 update()，
+  //       任务列表一渲染好就立刻执行提交 —— 也就是「挂机秒过」。
+  //       未勾选该开关时完全不影响原版 3 秒倒数。
+  function fastQuestDialog(dlg) {
+    if (!dlg || !dlg._showArgs) return;
+    dlg._autoExecuteTime = 1;
+    var left = 40;
+    var iv = setInterval(function () {
+      left--;
+      try {
+        if (left <= 0 || !dlg._view || !dlg._showArgs || dlg._isChoiceHide) { clearInterval(iv); return; }
+        dlg.update();
+        if (dlg._isChoiceHide || dlg._autoExecuteTime < 0) clearInterval(iv);
+      } catch (e) { clearInterval(iv); }
+    }, 25);
+  }
+  // 接入游戏自带的「自动模式」加速总开关（World.isAccelerate）。
+  // 只加快挂机决策、任务及结算倒数；战斗仍完整播放，原生倍速最高为 2。
+  // 这里直接写内部字段 _isAccelerate，绕过 setter，避免顺带强制打开自动挂机 AI。
+  // 是否「即时加速」真正生效 = 挂机秒过开关 ON 且 游戏内挂机（自动模式）已开启。
+  // 语义：挂机秒过与场景挂机同时开启才生效；不自动跳过战斗动画。
+  function fastOn() {
+    if (!window.__wolFast3s) return false;
+    try {
+      var req = window.__worldReq;
+      return !!req(69).MainPlayerAi.ins.open;
+    } catch (e) { return false; }
+  }
+  var accelOrig;
+  function syncAccel() {
+    if (!world) return;
+    try {
+      if (accelOrig === undefined) accelOrig = !!world._isAccelerate;
+      var want = fastOn() ? true : accelOrig;
+      if (!!world._isAccelerate !== want) {
+        world._isAccelerate = want;
+        try { var req = window.__worldReq; req(3).default.sendNt(req(2).MainEvent.ON_GAME_SPEED_UPDATE); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+  // ---- 主城界面：隐藏指定图标 ----
+  // 按屏幕上显示的文字精确匹配（去空白后全等），另加少量控件名兜底；
+  // 只作用于主城视图 _view 及其子节点，不碰任何弹窗；匹配不到就不动，绝不误删。
+  // 图标单元 = 从命中节点往上找到的第一个“父节点正好是四大图标区”的节点。
+  // 2026-11-01：主界面放回「充值」按钮（用户定），活动图标区只保留充值，其余仍隐藏。
+  var HIDE_TEXTS = ['福利', '特惠', '抽奖', '公告', '永泽塔', '矿洞', '能量精华', '超值', '霸业', '聚义酒馆', '对战', '聊天框', '试炼', '交易行'];
+  // 2026-10-24：周围／药品／邮件已排入官服两排底栏，不再按文字隐藏。
+  var SYSTEM_BUTTONS = ['btnCrossPla', 'btnNewTask', 'btnLegion', 'btn_beStronger'];
+  var mainView = null, hiddenUnits = [], lockedUnits = new WeakSet();
+  // 任务窗口和等级/活动刷新会直接写回 visible。只在已经匹配的主界面图标
+  // 实例上拦截这两项属性，让隐藏在写入时立即生效，不留 250ms 轮询间隙。
+  // 保留原 setter，确保 Egret 渲染状态与 EUI 布局也收到 false。
+  function lockHiddenProperty(unit, key) {
+    var owner = unit, descriptor;
+    while (owner && !descriptor) {
+      descriptor = Object.getOwnPropertyDescriptor(owner, key);
+      owner = Object.getPrototypeOf(owner);
+    }
+    if (descriptor && descriptor.get && descriptor.set) {
+      Object.defineProperty(unit, key, {
+        configurable: true, enumerable: descriptor.enumerable,
+        get: function () { return descriptor.get.call(this); },
+        set: function () { descriptor.set.call(this, false); }
+      });
+    }
+    unit[key] = false;
+  }
+  function hideUnit(node, view) {
+    // grp_act 也算图标区：命中其中的按钮只隐藏该按钮，不再连带整组（含充值）一起隐藏。
+    var groups = [view.grp_top, view.grp_left, view.grp_right, view.grp_bottom, view.grp_act];
+    var unit = node;
+    while (unit && unit.parent && groups.indexOf(unit.parent) < 0) unit = unit.parent;
+    if (unit && unit.parent) {
+      if (!lockedUnits.has(unit)) {
+        lockHiddenProperty(unit, 'visible');
+        lockHiddenProperty(unit, 'includeInLayout');
+        lockedUnits.add(unit);
+        hiddenUnits.push(unit);
+      }
+      unit.visible = false; unit.includeInLayout = false;
+    }
+  }
+  function applyMainView(view) {
+    if (!view) return;
+    if (mainView !== view) { mainView = view; hiddenUnits = []; }
+    for (var b = 0; b < SYSTEM_BUTTONS.length; b++) hideUnit(view[SYSTEM_BUTTONS[b]], view);
+    // 充值按钮已移到右侧「日常／挂机」下方（MainViewSkin 根层），活动图标区整组仍隐藏。
+    if (view.btnCharge) { view.btnCharge.visible = true; view.btnCharge.includeInLayout = true; }
+    for (var i = 0; i < hiddenUnits.length; i++) { try { hiddenUnits[i].visible = false; hiddenUnits[i].includeInLayout = false; } catch (e) {} }
+    var stack = [view], guard = 0;
+    while (stack.length && guard++ < 4000) {
+      var node = stack.pop();
+      if (!node) continue;
+      try {
+        var kids = node.$children;
+        if (kids) for (var k = 0; k < kids.length; k++) stack.push(kids[k]);
+        var nm = node.name;
+        // 其余图标只按屏幕文字精确匹配，避免同名控件影响弹窗内按钮。
+        var tx = node.text ? String(node.text).replace(/\s+/g, '') : '';
+        if (tx && HIDE_TEXTS.indexOf(tx) >= 0) hideUnit(node, view);
+      } catch (e) {}
+    }
+  }
+  function hookMain() {
+    var req = window.__worldReq;
+    if (typeof req !== 'function') return false;
+    try {
+      var m = req(604).MainMdr.prototype;
+      if (typeof m.onShow !== 'function') return false;
+      if (!m.__wolHidePatch) {
+        m.__wolHidePatch = true;
+        ['onInit', 'onShow', 'updateIcon', 'updateChargeBtn', 'onBulkInfo', 'onShowBuddy', 'updateOpenLevel'].forEach(function (key) {
+          var original = m[key];
+          if (typeof original !== 'function') return;
+          m[key] = function () { var r = original.apply(this, arguments); try { applyMainView(this._view); } catch (e) {} return r; };
+        });
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+  function install() {
+    var req = window.__worldReq; if (typeof req !== 'function') return false;
+    if (!world) { try { world = req(5).default; } catch (e) { return false; } }
+    if (!world) return false;
+    syncAccel();
+    if (!consts) { try { consts = req(61).default; } catch (e) { return false; } }
+    if (!consts) return false;
+    if (!aiDone) {
+      try {
+        var ap = req(69).MainPlayerAi.prototype;
+        if (typeof ap.ticker === 'function' && !ap.__wolFastPatch) {
+          ap.__wolFastPatch = true; var aiTick = ap.ticker;
+          ap.ticker = function () { if (fastOn()) { try { this._tickerCnt = 9; } catch (e) {} } return aiTick.apply(this, arguments); };
+          aiDone = true;
+        }
+      } catch (e) {}
+    }
+    // (3) 任务对话框（模块 737）：把「完成任务」的 3 秒倒数压成立刻执行
+    if (!mdDone) {
+      try {
+        var md = req(737).MissionDialogMdr.prototype;
+        if (typeof md.onShow === 'function' && !md.__wolFastPatch) {
+          md.__wolFastPatch = true; var mdShow = md.onShow;
+          md.onShow = function () {
+            var out = mdShow.apply(this, arguments);
+            if (fastOn()) { try { fastQuestDialog(this); } catch (e) {} }
+            return out;
+          };
+          mdDone = true;
+        }
+      } catch (e) {}
+    }
+    // (4) 战斗胜利面板（模块 539）：原版 3 秒倒数（加速时 1 秒）后自动关闭。
+    //     这里让它一亮就收（150ms），走游戏自己的 update()/hide() 收尾退出流程。
+    if (!winDone) {
+      try {
+        var wm = req(539).default.prototype;
+        if (typeof wm.onShow === 'function' && !wm.__wolFastPatch) {
+          wm.__wolFastPatch = true; var winShow = wm.onShow;
+          wm.onShow = function () {
+            var out = winShow.apply(this, arguments);
+            try {
+              if (fastOn()) {
+                var dlg = this, tok = (dlg.__wolTok = (dlg.__wolTok || 0) + 1);
+                setTimeout(function () {
+                  try {
+                    var proxy = req(54).default.ins;
+                    if (dlg.__wolTok !== tok || !proxy || !proxy.isOpenResult) return;
+                    dlg._closeTime = 1;
+                    dlg.update();
+                  } catch (e) {}
+                }, 150);
+              }
+            } catch (e) {}
+            return out;
+          };
+          winDone = true;
+        }
+      } catch (e) {}
+    }
+    // (5) 主城界面：隐藏指定图标（模块 604 MainMdr）
+    if (!hideDone) hideDone = hookMain();
+    return aiDone && mdDone && winDone && hideDone;
+  }
+  function watch() { if (hookTimer) return; hookTimer = setInterval(function () { hookTries++; var ok = install(); if (ok) { window.__wolFastReady = true; } if (ok || hookTries > 400) { clearInterval(hookTimer); hookTimer = 0; } }, 250); }
+  function boot() { watch(); setInterval(function () { syncAccel(); }, 1000); setInterval(function () { try { applyMainView(mainView); } catch (e) {} }, 250); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script><title>世界 online · 原版单机（独立版）</title><script>window.worldolPhoneHtmlDialogs=true;</script>
+<script src="../web/compat-menu.js"></script>
+<link rel="stylesheet" href="../web/offline.css"><link rel="stylesheet" href="../web/home-features.css"><style>
+html,body{/*login-bg*/background:#0b1623 url(assets/54/54a35fbd6155fa14.jpg) center/cover no-repeat}
+/* 2026-11-07 进入地图后底色改黑：小地图（如蒂卡尔神殿）铺不满屏时，地图外不再露出开机插画 */
+html.worldol-in-world,html.worldol-in-world body{background:#000}
+#standalone-loading{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);font:14px/1.8 system-ui,"Microsoft YaHei",sans-serif;color:#fff;text-shadow:0 1px 3px #000;text-align:center;max-width:70vw;}
+#standalone-loading::before{content:"";display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #d9d9d9;border-top-color:#4a90d9;animation:worldol-spin 1s linear infinite;}
+@keyframes worldol-spin{to{transform:rotate(360deg)}}
+#home-install-footer{box-sizing:border-box;position:fixed;left:0;right:0;bottom:0;z-index:5000;padding:0 12px env(safe-area-inset-bottom,0px);border-top:1px solid #607c9266;background:#0b192bed;text-align:center}
+#home-install-footer[hidden]{display:none}
+#home-install-footer a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;color:#f5d58e;font:600 15px/1.4 system-ui,"Microsoft YaHei",sans-serif;text-underline-offset:3px}
+#home-install-footer a:focus-visible{outline:2px solid #f5d58e;outline-offset:-3px;border-radius:4px}
+</style></head>
+<body><div class="egret-player" data-entry-class="Launcher" data-orientation="auto" data-scale-mode="fixedNarrow" data-frame-rate="60" data-content-width="720" data-content-height="1280" data-show-paint-rect="false" data-multi-fingered="2" data-show-fps="false" data-show-log="false"></div>
+<div id="standalone-loading">正在启动独立离线核心…</div>
+<dialog id="entry-pledge-dialog" aria-labelledby="entry-pledge-title" aria-describedby="entry-pledge-help">
+  <form id="entry-pledge-form" novalidate>
+    <p class="pledge-eyebrow">世界OL · 单机版</p>
+    <h1 id="entry-pledge-title">游玩前承诺</h1>
+    <p id="entry-pledge-help">本版本仅供个人单机体验与学习交流。请在下方完整输入承诺内容，核对一致后才能进入游戏。</p>
+    <blockquote id="entry-pledge-text">我承诺不传播不售卖不商用违规后果自行承担</blockquote>
+    <label for="entry-pledge-input">请输入上方完整承诺</label>
+    <textarea id="entry-pledge-input" name="pledge" rows="3" maxlength="160" autocomplete="off" spellcheck="false" placeholder="请完整输入上方承诺，无需标点" aria-describedby="entry-pledge-message" required></textarea>
+    <p id="entry-pledge-message" role="status" aria-live="polite">输入内容一致后，确认按钮会亮起。</p>
+    <button id="entry-pledge-confirm" type="submit" disabled>确认并进入</button>
+    <p class="pledge-note">每次重新打开游戏需再次确认。不同意此承诺，请关闭游戏。</p>
+  </form>
+</dialog>
+<!-- 不可见的启动状态与诊断挂载点：#offline-status / #offline-role / #offline-state / #offline-log；#save-name 承载账号名。 -->
+<div id="offline-panel" style="display:none" aria-hidden="true"><p id="offline-status">正在加载原版客户端…</p><p id="offline-role"></p><span id="save-name">offline</span><pre id="offline-state"></pre><pre id="offline-log"></pre></div>
+<dialog id="recorded-dialog"><header><h2 id="recorded-title">已录内容还原</h2><button id="recorded-close">关闭</button></header><p id="recorded-help">宠物可按录制模板免费领取，称号可直接使用。套装效果随穿戴和VIP等级自动生效。</p><div class="career-filters"><select id="recorded-category" aria-label="资料分类"></select><input id="recorded-search" placeholder="搜索名称、属性、地图" aria-label="搜索录制资料"></div><p id="recorded-count"></p><div class="recorded-columns"><nav id="recorded-results"></nav><article id="recorded-detail"></article></div><footer><button id="recorded-prev">上一页</button><button id="recorded-next">下一页</button><p id="recorded-status" role="status"></p></footer></dialog><dialog id="combat-rating-dialog"><header><h2>单机战力</h2><button id="combat-rating-close">关闭</button></header><p class="rating-note">按角色常驻面板计算的单机评分，用于比较养成变化。正式服精确权重尚未取得。装备、鉴定、强化、宝石、套装、VIP装备加成和被动技能通过生效属性计分；宠物和战斗临时状态不计入；不代表实战伤害。</p><div id="combat-rating-content" aria-live="polite"></div></dialog>
+<dialog id="career-dialog"><header><h2>全职业导师 · 技能检索</h2><button id="career-close" aria-label="关闭技能检索">关闭</button></header><p class="career-note">九职业技能开放至22级。单机免费学习，已学技能等级自动保存。</p><nav id="career-teachers" aria-label="职业导师"></nav><div class="career-filters"><input id="career-search" aria-label="搜索技能" placeholder="搜索技能名或22级效果"><select id="career-profession" aria-label="职业筛选"><option value="">全部职业</option></select><select id="career-category" aria-label="技能类型筛选"><option value="">全部类型</option><option>被动</option><option>自动</option><option>主动</option></select></div><p id="career-count">正在加载导师目录…</p><div class="career-columns"><div id="career-results" aria-label="技能搜索结果"></div><article id="career-detail" aria-live="polite"></article></div></dialog>
+
+<dialog id="composition-dialog"><header><h2>VIP等级与装备属性</h2><button id="composition-close">关闭</button></header><p class="composition-note">VIP 等级直接设定；装备属性按当前套装生效。此页不再提供免费合成。</p><label>操作<select id="composition-mode" aria-label="操作"><option value="vip">VIP等级与装备属性</option></select></label><section id="composition-equipment-fields" hidden><label>装备<select id="composition-target" aria-label="装备"></select></label><p id="composition-current"></p><label>合成效果<select id="composition-choice" aria-label="效果"></select></label><label id="composition-value-row">属性数值<input id="composition-value" aria-label="属性数值" type="number" step="1"><span id="composition-range"></span></label></section><section id="composition-vip-fields"><p id="composition-vip-current"></p><ul id="composition-vip-bonuses"></ul><p id="composition-vip-note" class="composition-note"></p></section><p id="composition-status" role="status" aria-live="polite"></p><button id="composition-apply" disabled>保存 VIP 等级</button></dialog>
+<dialog id="features-dialog"><header><h2>城市与人物养成</h2><button id="features-close">关闭</button></header><p>已有录制数据按原值使用；缺少的等级和规则标记为待定，相关升级不消耗材料。</p><div id="features-content"></div></dialog>
+<link rel="stylesheet" href="../web/equipment-workspace.css?v=20261013">
+<script src="../web/equipment-workspace.js?v=20261013"></script>
+<script src="../web/equipment-workspace-native.js?v=20261013"></script>
+<script src="../web/equipment-workspace-html.js?v=20261013"></script><script src="../web/advance-shop-native.js?v=20261102"></script>
+<script src="../web/standalone-save.js?v=38642766e1"></script>
+<script src="../web/battle-log.js?v=1.2.0"></script>
+<script src="worldol-float-text.js?v=1.4.0"></script>
+<script src="worldol-battle-attr-cache.js?v=1.0.0"></script>
+<script src="banner/voice-data.js?v=1.1.1"></script>
+<script src="worldol-skill-banner.js?v=1.7.5"></script><script src="worldol-custom-icons.js?v=1.0.1"></script>
+<script src="worldol-pet-skill-abandon.js?v=1.0.0"></script>
+<script>
+(function(){
+  'use strict';
+  // —— 启动自诊断：任何未捕获错误直接显示在加载文字上（安卓 WebView 排障用）——
+  function bootFail(kind, err) {
+    var el = document.getElementById('standalone-loading');
+    var msg = err && (err.stack || err.message) ? String(err.stack || err.message) : String(err);
+    if (el) el.textContent = '启动错误(' + kind + ')：' + msg.split('\n').slice(0, 3).join(' | ');
+    try { console.error('[worldol-boot]', kind, err); } catch (e) {}
+  }
+  window.addEventListener('error', function(e){ bootFail(e.filename ? (e.filename.split('/').pop() + ':' + e.lineno) : '同步', e.error || e.message); });
+  window.addEventListener('unhandledrejection', function(e){ bootFail('异步', e.reason); });
+
+  // —— 旧 WebView 内核垫片（structuredClone 需 Chrome 98 / Object.hasOwn 93 / at 92 / replaceChildren 86 / replaceAll 85）——
+  if (typeof window.structuredClone !== 'function') {
+    window.structuredClone = function(value) {
+      function clone(v, seen) {
+        if (v === null || typeof v !== 'object') return v;
+        if (seen.has(v)) return seen.get(v);
+        if (v instanceof Date) { var d = new Date(v.getTime()); seen.set(v, d); return d; }
+        if (v instanceof RegExp) { var r = new RegExp(v.source, v.flags); r.lastIndex = v.lastIndex; seen.set(v, r); return r; }
+        if (typeof ArrayBuffer !== 'undefined' && v instanceof ArrayBuffer) {
+          var ab = new ArrayBuffer(v.byteLength);
+          new Uint8Array(ab).set(new Uint8Array(v));
+          seen.set(v, ab);
+          return ab;
+        }
+        if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(v)) {
+          var copy = new v.constructor(v.buffer.slice(0), v.byteOffset, v.length);
+          seen.set(v, copy);
+          return copy;
+        }
+        if (typeof Map !== 'undefined' && v instanceof Map) {
+          var m = new Map();
+          seen.set(v, m);
+          v.forEach(function(val, k){ m.set(clone(k, seen), clone(val, seen)); });
+          return m;
+        }
+        if (typeof Set !== 'undefined' && v instanceof Set) {
+          var st = new Set();
+          seen.set(v, st);
+          v.forEach(function(item){ st.add(clone(item, seen)); });
+          return st;
+        }
+        if (Array.isArray(v)) {
+          var a = new Array(v.length);
+          seen.set(v, a);
+          for (var i = 0; i < v.length; i++) a[i] = clone(v[i], seen);
+          return a;
+        }
+        var o = Object.create(Object.getPrototypeOf(v));
+        seen.set(v, o);
+        for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) o[k] = clone(v[k], seen);
+        return o;
+      }
+      return clone(value, new WeakMap());
+    };
+  }
+  if (typeof Object.hasOwn !== 'function') {
+    Object.hasOwn = function(o, k){ return Object.prototype.hasOwnProperty.call(o, k); };
+  }
+  // at：数组、字符串、各类型化数组逐个补（运行时的物品编码对字节数组调用 at，只补数组会在旧内核报 s.at is not a function）
+  var atShim = function(n){
+    n = Math.trunc(n) || 0;
+    if (n < 0) n += this.length;
+    return (n >= 0 && n < this.length) ? this[n] : undefined;
+  };
+  ['Array','String','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array',
+   'Float32Array','Float64Array','BigInt64Array','BigUint64Array'].forEach(function(name){
+    var T = window[name];
+    if (T && !T.prototype.at) Object.defineProperty(T.prototype, 'at', { value: atShim, writable: true, enumerable: false, configurable: true });
+  });
+  // replaceChildren（Chrome 86）：各 HTML 面板刷新列表都用它
+  [window.Element, window.Document, window.DocumentFragment].forEach(function(T){
+    if (T && !T.prototype.replaceChildren) Object.defineProperty(T.prototype, 'replaceChildren', { value: function(){
+      while (this.lastChild) this.removeChild(this.lastChild);
+      if (arguments.length) this.append.apply(this, arguments);
+    }, writable: true, enumerable: false, configurable: true });
+  });
+  if (!String.prototype.replaceAll) {
+    String.prototype.replaceAll = function(search, replacement) {
+      if (search instanceof RegExp) {
+        if (!search.global) throw new TypeError('replaceAll 的正则必须带 g 标志');
+        return this.replace(search, replacement);
+      }
+      var str = String(search), s = String(this), out = '', pos = 0, idx;
+      if (str === '') return typeof replacement === 'function' ? s.replace(/^/, replacement) : String(replacement) + s;
+      while ((idx = s.indexOf(str, pos)) !== -1) {
+        out += s.slice(pos, idx) + (typeof replacement === 'function' ? replacement(str, idx, s) : String(replacement));
+        pos = idx + str.length;
+      }
+      return out + s.slice(pos);
+    };
+  }
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // Preload the local rule data used by the in-browser service.
+  window.__worldolPreload=(async function(){
+    const status=document.getElementById('standalone-loading');
+    try{
+      const list=await fetch('standalone-files.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('missing manifest');return r.json();});
+      const files=list.files||[];
+      const registry=window.__worldolFiles=new Map();
+      const protectedTables=new Set(["/data/achievements.json","/data/boss-challenges-v1.json","/data/box-rewards.json","/data/captured81-20260926.json","/data/career-skill-directory.json","/data/career-skills.json","/data/catalog-skills.json","/data/city-character-v1.json","/data/community-growth.json","/data/community-titles.json","/data/composite-shops.json","/data/crafting-groups.json","/data/crafting-material-sources.json","/data/custom-adventure-notes.json","/data/custom-level-boxes.json","/data/custom-sprites.json","/data/daily-activity-v1.json","/data/daily-dungeon-expansion.json","/data/dormant-mounts.json","/data/drop-catalog.json","/data/drop-web-references.json","/data/dungeon-box-market.json","/data/dungeon-import-manifest.json","/data/dungeon-reward-repairs.json","/data/dungeon-shortcut-routes.json","/data/effective-a-baseline.json","/data/enchantment-crafting-rules.json","/data/equipment-composition-rules.json","/data/equipment-composition-skill-confirmations.json","/data/equipment-composition-skills.json","/data/equipment-sets.json","/data/equipment-skill-levels.json","/data/equipment-upgrade-rules.json","/data/furnace-craftsmen-rules.json","/data/ghent-region.json","/data/guard-challenges-v1.json","/data/guide-faq.json","/data/h5-crafting.json","/data/home-feature-catalogs.json","/data/home-features-v1.json","/data/item-affix-layouts.json","/data/item-binding-overrides.json","/data/large-recharge-gift.json","/data/legion-v1.json","/data/local-mounts.json","/data/manual-item-grants.json","/data/maps/1.json","/data/maps/10.json","/data/maps/1000.json","/data/maps/11.json","/data/maps/12.json","/data/maps/14.json","/data/maps/16.json","/data/maps/17.json","/data/maps/19.json","/data/maps/2.json","/data/maps/20.json","/data/maps/22.json","/data/maps/23.json","/data/maps/24.json","/data/maps/251.json","/data/maps/254.json","/data/maps/255.json","/data/maps/257.json","/data/maps/259.json","/data/maps/260.json","/data/maps/262.json","/data/maps/263.json","/data/maps/265.json","/data/maps/27.json","/data/maps/271.json","/data/maps/273.json","/data/maps/279.json","/data/maps/293.json","/data/maps/300.json","/data/maps/301.json","/data/maps/303.json","/data/maps/3090.json","/data/maps/35.json","/data/maps/37.json","/data/maps/4.json","/data/maps/410.json","/data/maps/411.json","/data/maps/415.json","/data/maps/416.json","/data/maps/417.json","/data/maps/418.json","/data/maps/457.json","/data/maps/458.json","/data/maps/459.json","/data/maps/5.json","/data/maps/501.json","/data/maps/502.json","/data/maps/5510.json","/data/maps/6.json","/data/maps/6100.json","/data/maps/6101.json","/data/maps/6102.json","/data/maps/6103.json","/data/maps/6104.json","/data/maps/6200.json","/data/maps/7.json","/data/maps/807.json","/data/maps/808.json","/data/maps/809.json","/data/maps/810.json","/data/maps/813.json","/data/maps/814.json","/data/maps/815.json","/data/maps/818.json","/data/maps/819.json","/data/maps/820.json","/data/maps/821.json","/data/maps/822.json","/data/maps/823.json","/data/maps/824.json","/data/maps/825.json","/data/maps/826.json","/data/maps/827.json","/data/maps/828.json","/data/maps/829.json","/data/maps/830.json","/data/maps/831.json","/data/maps/833.json","/data/maps/834.json","/data/maps/835.json","/data/maps/836.json","/data/maps/838.json","/data/maps/839.json","/data/maps/840.json","/data/maps/841.json","/data/maps/843.json","/data/maps/844.json","/data/maps/845.json","/data/maps/846.json","/data/maps/847.json","/data/maps/848.json","/data/maps/849.json","/data/maps/850.json","/data/maps/851.json","/data/maps/852.json","/data/maps/853.json","/data/maps/854.json","/data/maps/861.json","/data/maps/862.json","/data/maps/900.json","/data/maps/901.json","/data/maps/904.json","/data/maps/905.json","/data/maps/906.json","/data/maps/907.json","/data/maps/908.json","/data/maps/909.json","/data/maps/911.json","/data/maps/912.json","/data/maps/914.json","/data/maps/915.json","/data/maps/916.json","/data/maps/917.json","/data/maps/920.json","/data/maps/921.json","/data/maps/922.json","/data/maps/923.json","/data/maps/924.json","/data/maps/926.json","/data/maps/927.json","/data/maps/928.json","/data/maps/929.json","/data/maps/930.json","/data/maps/937.json","/data/maps/938.json","/data/maps/940.json","/data/maps/945.json","/data/maps/948.json","/data/maps/950.json","/data/maps/952.json","/data/maps/953.json","/data/maps/954.json","/data/maps/955.json","/data/maps/959.json","/data/maps/960.json","/data/maps/961.json","/data/maps/962.json","/data/maps/963.json","/data/maps/964.json","/data/maps/965.json","/data/maps/966.json","/data/maps/967.json","/data/maps/969.json","/data/maps/972.json","/data/maps/974.json","/data/maps/975.json","/data/maps/976.json","/data/maps/977.json","/data/maps/978.json","/data/maps/979.json","/data/maps/98.json","/data/maps/980.json","/data/maps/981.json","/data/maps/982.json","/data/maps/983.json","/data/maps/985.json","/data/maps/986.json","/data/maps/987.json","/data/maps/988.json","/data/maps/989.json","/data/maps/990.json","/data/maya-restoration-v1.json","/data/native-commerce.json","/data/native-map-slices.json","/data/npc-corpus.json","/data/npc-item-shops.json","/data/npc-pool-data.json","/data/npc-pool.json","/data/official-guides.json","/data/official-v305.json","/data/offline-update.json","/data/pet-book-library.json","/data/pet-catalog.json","/data/pet-equipment-skills32.json","/data/player-experience.json","/data/published-box-rewards.json","/data/recharge-center.json","/data/recorded-content.json","/data/recorded-expansion-20260922.json","/data/replayable-chains.json","/data/restored-v03.json","/data/reviewed-dungeon-rewards.json","/data/sea-towns.json","/data/talent-attribute-caps.json","/data/team-dungeon-capture-20261001.json","/data/user-fragment-exchanges.json","/data/vip-task-materials.json","/data/world-broadcast.json","/data/world-travel-links.json","/data/yunruo-temple-v1.json"]);
+      const tableKey=await window.crypto.subtle.importKey('raw',Uint8Array.from(atob('H/QezrjJejpa+r0bfMuY3kh5j1Au0eBedbqwQ2nX3NM='),c=>c.charCodeAt(0)),'AES-GCM',false,['decrypt']);
+      const QUOTA=8;
+      for(let i=0;i<files.length;i+=QUOTA){
+        const batch=files.slice(i,i+QUOTA);
+        await Promise.all(batch.map(async rel=>{
+          try{
+            const url=new URL(rel,location.origin).href;
+            const response=await fetch(url);
+            let text=null;
+            if(protectedTables.has(rel)){
+              if(!response.ok)throw new Error('missing protected table '+rel);
+              const bytes=new Uint8Array(await response.arrayBuffer());
+              if(bytes.length<28)throw new Error('truncated protected table '+rel);
+              const packed=new Uint8Array(await window.crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.subarray(0,12),additionalData:new TextEncoder().encode(rel)},tableKey,bytes.subarray(12)));
+              // 系统自带解压（Chromium 80+）；更旧的 WebView 用随包的解压函数（构建时已逐表核对结果一致）。
+              const data=typeof DecompressionStream==='function'
+                ?new Uint8Array(await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer())
+                :(function(data){
+  var pos=0,bitBuf=0,bitCnt=0,op=0,out=new Uint8Array(Math.max(1024,data.length*4));
+  function bits(n){while(bitCnt<n){if(pos>=data.length)throw Error('inflate: truncated');bitBuf|=data[pos++]<<bitCnt;bitCnt+=8;}var v=bitBuf&((1<<n)-1);bitBuf>>>=n;bitCnt-=n;return v;}
+  function room(n){if(op+n>out.length){var grown=new Uint8Array(Math.max(out.length*2,op+n));grown.set(out.subarray(0,op));out=grown;}}
+  function table(lengths){var count=new Uint16Array(16),offs=new Uint16Array(16),symbol=new Uint16Array(lengths.length),i;
+    for(i=0;i<lengths.length;i++)count[lengths[i]]++;count[0]=0;for(i=1;i<16;i++)offs[i]=offs[i-1]+count[i-1];
+    for(i=0;i<lengths.length;i++)if(lengths[i])symbol[offs[lengths[i]]++]=i;return{count:count,symbol:symbol};}
+  function decode(t){var code=0,first=0,index=0;for(var len=1;len<16;len++){code|=bits(1);var c=t.count[len];if(code-c<first)return t.symbol[index+code-first];index+=c;first+=c;first<<=1;code<<=1;}throw Error('inflate: bad code');}
+  var LB=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258],LE=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  var DB=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577],DE=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+  var fixedL,fixedD;
+  function codes(lc,dc){for(;;){var sym=decode(lc);if(sym<256){room(1);out[op++]=sym;}else if(sym===256)return;else{sym-=257;if(sym>=29)throw Error('inflate: bad length');
+    var len=LB[sym]+bits(LE[sym]),ds=decode(dc);if(ds>=30)throw Error('inflate: bad distance');var dist=DB[ds]+bits(DE[ds]);if(dist>op)throw Error('inflate: distance too far');
+    room(len);for(var k=0;k<len;k++){out[op]=out[op-dist];op++;}}}}
+  var last;do{last=bits(1);var type=bits(2);
+    if(type===0){bitBuf=0;bitCnt=0;if(pos+4>data.length)throw Error('inflate: truncated');var n=data[pos]|data[pos+1]<<8;pos+=4;if(pos+n>data.length)throw Error('inflate: truncated');room(n);out.set(data.subarray(pos,pos+n),op);op+=n;pos+=n;}
+    else if(type===1){if(!fixedL){var l=new Uint8Array(288),i;for(i=0;i<144;i++)l[i]=8;for(;i<256;i++)l[i]=9;for(;i<280;i++)l[i]=7;for(;i<288;i++)l[i]=8;fixedL=table(l);var d=new Uint8Array(30);d.fill(5);fixedD=table(d);}codes(fixedL,fixedD);}
+    else if(type===2){var nlen=bits(5)+257,ndist=bits(5)+1,ncode=bits(4)+4,order=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15],cl=new Uint8Array(19),j;
+      for(j=0;j<ncode;j++)cl[order[j]]=bits(3);var clt=table(cl),all=new Uint8Array(nlen+ndist);j=0;
+      while(j<nlen+ndist){var s=decode(clt);if(s<16)all[j++]=s;else{var rep,val=0;if(s===16){if(!j)throw Error('inflate: bad repeat');val=all[j-1];rep=3+bits(2);}else if(s===17)rep=3+bits(3);else rep=11+bits(7);if(j+rep>nlen+ndist)throw Error('inflate: bad lengths');while(rep--)all[j++]=val;}}
+      codes(table(all.subarray(0,nlen)),table(all.subarray(nlen)));}
+    else throw Error('inflate: bad block');
+  }while(!last);
+  return out.subarray(0,op);
+})(packed.subarray(2));
+              text=new TextDecoder('utf-8',{fatal:true}).decode(data);
+            }else if(response.ok)text=await response.text();
+            if(text!=null)registry.set(url,text);
+          }catch(e){if(protectedTables.has(rel))throw e;}
+        }));
+        if(status)status.textContent='正在加载游戏数据 '+Math.min(i+QUOTA,files.length)+' / '+files.length+' …';
+      }
+    }catch(e){throw new Error("游戏数据保护校验失败", {cause:e});}
+  })();
+  Promise.resolve(window.__worldolPreload).then(()=>{
+    const status=document.getElementById('standalone-loading');
+    const s=document.createElement('script');
+    s.src='worldol-standalone.js?v=complete-dungeon-repairs-20261013-daily-progress-tab-combat-fixes-auto-growth-native-absorption-reflection-ratio-full-group-absorption-vip-task-materials-20261014-void-illusion-lantern-riddle-equipment-repair-20261015-npc-entry';
+    s.onerror=()=>{if(status)status.textContent='核心加载失败：请通过本地静态服务器打开本页面（例如在项目根目录运行 python -m http.server 后访问 /client/standalone.html）。';};
+    document.body.appendChild(s);
+  }).catch(error=>{
+    const status=document.getElementById("standalone-loading");
+    if(status)status.textContent="游戏数据校验失败，请重新获取完整安装包。";
+    console.error(error);
+  });
+})();
+</script>
+<!-- 一键挂售（exchange-tools.js）已停用 2026-10-26：交易所改由原版界面 + 098a/098b 单机市场处理 -->
+</body></html>

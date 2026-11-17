@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="skins.FurnaceRenderSkin",t}return __extends(t,e),t}(eui.ItemRenderer);t["default"]=o}

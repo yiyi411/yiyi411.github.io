@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.RelationModel=void 0;var o=function(){function e(){this._obj={}}return e.prototype.setRelatioList=function(e,t){this._obj[e]=t},e.prototype.getRelatioList=function(e){return this._obj[e]||[]},e}();t.RelationModel=o}

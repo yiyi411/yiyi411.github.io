@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.SystemEvetnItem=void 0;var o=i(7),n=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.dataChanged=function(){null!=this.data&&(this.textTitle.text=this.data.str0)},t}(o["default"]);t.SystemEvetnItem=n}

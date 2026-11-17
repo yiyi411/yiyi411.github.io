@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.WaterPipeView=void 0;var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="WaterPipeGameSkin",t}return __extends(t,e),t}(eui.Component);t.WaterPipeView=o}

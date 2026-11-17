@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.ChatTargetItem=void 0;var o=i(8),n=i(7),a=function(e){function t(){return e.call(this)||this}return __extends(t,e),t.prototype.dataChanged=function(){null!=this.data&&(this.labelDisplay.text=this.data.getName(),this.imageHead.source=o.Tool.getHeadIcon(this.data))},t}(n["default"]);t.ChatTargetItem=a}

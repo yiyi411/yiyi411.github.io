@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="BattleMenuItemSkin",t}return __extends(t,e),t.prototype.dataChanged=function(){if(null!=this.data){var e=this.data;this.txtName.text=e.name,this.imgIcon.source=e.url}},t}(eui.ItemRenderer);t["default"]=o}

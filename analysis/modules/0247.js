@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.InputAlertData=void 0;var o=function(){function e(e,t,i,o,n){this._tip=e,this._prompt=t?t:"输入内容",""==i?this._restrict=null:this._restrict=i?i:"0-9",this._maxChar=o?o:0,this._initStr=n?n:""}return e}();t.InputAlertData=o}

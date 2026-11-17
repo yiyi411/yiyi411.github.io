@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.CrossServerDungeonsData=void 0;var o=function(){function e(){}return e.prototype.readData=function(e){this.id=e.getInt(),this.name=e.getString(),this.icon=e.getInt(),this.grade=e.getInt(),this.open=e.getInt(),this.level=e.getInt(),this.combatPower=e.getInt()},e}();t.CrossServerDungeonsData=o}

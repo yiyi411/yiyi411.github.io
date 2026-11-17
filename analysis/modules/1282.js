@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),i(1283),i(1284);var o=function(e){function t(){var t=e.call(this)||this;return t.skinName="BossAttackSkin",t}return __extends(t,e),t}(eui.Component);t["default"]=o}

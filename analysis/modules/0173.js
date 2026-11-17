@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(3),n=i(0),a=i(4),r=i(1),s=(i(13),i(163),function(){function e(){}return e.openReward=function(e){var t=o["default"].getProxy(n.ModName.Cross,n.ProxyType.Cross),i=t.data.getData(a["default"].rankReward+e);return i?void r["default"].showRankReward(i):void t.sendRankReward(e)},e}());t["default"]=s}

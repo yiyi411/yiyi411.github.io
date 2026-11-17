@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(36),n=i(696),a=i(699),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.onInit=function(){e.prototype.onInit.call(this),this.tabListData=[{lab:"大奖"},{lab:"历史"}],this.tabListMdr=[n["default"],a["default"]]},t}(o["default"]);t["default"]=r}

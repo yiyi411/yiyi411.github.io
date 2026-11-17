@@ -1,0 +1,2 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(7),n=function(e){function t(){var t=e.call(this)||this;return t.skinName="ChargeLotteryListRenderSkin",t}return __extends(t,e),t.prototype.dataChanged=function(){return this.data?(this.rankName.visible=!0,this.rankTime.visible=!0,this.rankName.text=this.data.name,void(this.rankTime.text=this.data.rewardDate)):(this.rankName.visible=!1,void(this.rankTime.visible=!1))
+},t}(o["default"]);t["default"]=n}

@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=function(){function e(){}return e.NPC_HEIGHT=50,e.NPC_WIDTH=36,e.NPC_WIDTH_HALF=e.NPC_WIDTH>>1,e}();t["default"]=o}

@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var o=i(3),n=i(26),a=i(311),r=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.onAddedSlice=function(){o["default"].sendNt(n.SceneEvent.ON_PLAYER_LAYER_ADD_SLICE)},t}(a["default"]);t["default"]=r}

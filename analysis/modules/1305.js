@@ -1,0 +1,1 @@
+function(e,t,i){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.GuideView=void 0;var o=i(1306),n=i(44),a=function(e){function t(){return null!==e&&e.apply(this,arguments)||this}return __extends(t,e),t.prototype.updateCurGuide=function(){this._guide=n.GuideModel.ins.curGuide,e.prototype.updateCurGuide.call(this)},t}(o.GuideBaseView);t.GuideView=a}
